@@ -2,8 +2,6 @@
 
 **Description**:  Writing querry operation in the new V3 node api is still a pain. This gets slightly easier using the documentclient but it's still far from an enjoyable experience. That's why this package was created. It makes writing querries that are fully compatible with the API and mocking library very easy.
 
-Other things to include:
-
   - **Technology stack**: This project is written in TypeScript and meant as a small import into your current workflow.
   - **Status**:  Early Alpha [CHANGELOG](CHANGELOG.md).
   - There are a few other query builders for DynamoDB atm but none of them let you integrate with API provided from AWS. This is a simple drop in replacement class.
