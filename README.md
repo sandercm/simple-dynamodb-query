@@ -60,9 +60,33 @@ If the software is configurable, describe it in detail, either here or in other 
 
 ## Usage
 
-Show users how to use the software.
-Be specific.
-Use appropriate formatting when showing code snippets.
+If you want to query a PK you can do this very easily like this.
+```javascript
+           const client = new DynamoDBClient({region: 'eu-west-1'});
+           const docClient = DynamoDBDocumentClient.from(client);
+           
+           const command = new SimpleQueryCommand({
+               TableName: 'PatientTasks',
+               partitionKey: {
+                   _PK: 'task_org.entity_shift'
+               }
+           });
+           const result = await docClient.send(command);
+```
+If you want to filter on one of <, <=, >, >=, BETWEEN, BEGINS_WITH
+```javascript
+           const client = new DynamoDBClient({region: 'eu-west-1'});
+           const docClient = DynamoDBDocumentClient.from(client);
+           
+           const command = new SimpleQueryCommand({
+               TableName: 'PatientTasks',
+               partitionKey: {
+                   _PK: 'task_org.entity_shift'
+               }
+           }).sortKey('_SK')
+            .between('0', '400');
+           const result = await docClient.send(command);
+```
 
 ## How to test the software
 
