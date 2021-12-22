@@ -13,9 +13,6 @@ const validateKeys = (input: SimpleQueryCommandInput) => {
     }
 };
 
-const createProjectionExpression = (partitionKey: Record<string, string>) =>
-    `#${Object.keys(partitionKey)[0]}`;
-
 const createExpressionAttributeNames = (input: SimpleQueryCommandInput) => {
     const partitionKey = Object.keys(input.partitionKey)[0];
     const temp = {[`#${partitionKey}`]: `${partitionKey}`};
@@ -28,7 +25,6 @@ const createExpressionAttributeNames = (input: SimpleQueryCommandInput) => {
 };
 
 const createKeyConditionExpression = (input: SimpleQueryCommandInput) => {
-    // TODO: add support for multiple extra conditions
     const partitionKey = Object.keys(input.partitionKey)[0];
     const sortKey = input.sortKey ? Object.keys(input.sortKey)[0] : undefined;
 
@@ -61,27 +57,141 @@ const createQueryCommandInput = function (input: SimpleQueryCommandInput): Query
 };
 
 export class SimpleQueryCommand extends QueryCommand{
+    private _partitionKey;
+    private _sortKey;
+
     constructor(input: SimpleQueryCommandInput) {
         super(createQueryCommandInput(input));
+        this._partitionKey = Object.keys(input.partitionKey)[0];
+        this._sortKey = input.sortKey ? Object.keys(input.sortKey)[0] : undefined;
     }
-}
 
-const client = new DynamoDBClient({region: 'eu-west-1'});
-const docClient = DynamoDBDocumentClient.from(client);
+    public sortKey(_sortKey: string) {
+        this._sortKey = _sortKey;
+        Object.assign(this.input.ExpressionAttributeNames, {[`#${_sortKey}`]: `${_sortKey}`});
+        return this;
+    }
+    
+    public between(start: string, end: string, sk?: string) {
+        if(sk) {
+            this.sortKey(sk);
+        }
+        if(!this._sortKey){
+            throw new Error("sortKey is required");
+        }
 
-async function main() {
-    try {
-        const command = new SimpleQueryCommand({
-            TableName: 'intocare.Calendar',
-            partitionKey: {
-                _PK: 'organisation_intocare_calendarCategory_dcc6bc9025ab11ec8b9155b1f3d3f2e0'
-            }
+        const current: QueryCommandInput = this.input;
+        current.KeyConditionExpression += ` AND #${this._sortKey} BETWEEN :start AND :end`;
+
+        Object.assign(current.ExpressionAttributeValues, {
+            [`:start`]: start,
+            [`:end`]: end
         });
-        const result = await docClient.send(command);
-        console.log(result);
-    } catch (e) {
-        console.log(e);
+
+        return this;
+    }
+
+    public begins_with(begin: string, sk?: string) {
+        if(sk) {
+            this.sortKey(sk);
+        }
+        if(!this._sortKey){
+            throw new Error("sortKey is required");
+        }
+
+        const current: QueryCommandInput = this.input;
+        current.KeyConditionExpression += ` AND begins_with( #${this._sortKey}, :begin)`;
+
+        Object.assign(current.ExpressionAttributeValues, {
+            [`:begin`]: begin
+        });
+
+        return this;
+    }
+
+    public eq(value: string, sk?: string) {
+        if(sk) {
+            this.sortKey(sk);
+        }
+        if(!this._sortKey){
+            throw new Error("sortKey is required");
+        }
+
+        const current: QueryCommandInput = this.input;
+        current.KeyConditionExpression += ` AND #${this._sortKey} = :value`;
+        Object.assign(current.ExpressionAttributeValues, {
+            [`:value`]: value
+        });
+        return this;
+    }
+
+    public lt(value: string, sk?: string) {
+        if(sk) {
+            this.sortKey(sk);
+        }
+        if(!this._sortKey){
+            throw new Error("sortKey is required");
+        }
+
+        const current: QueryCommandInput = this.input;
+        current.KeyConditionExpression += ` AND #${this._sortKey} < :value`;
+        Object.assign(current.ExpressionAttributeValues, {
+            [`:value`]: value
+        });
+        return this;
+    }
+
+    public lte(value: string, sk?: string) {
+        if(sk) {
+            this.sortKey(sk);
+        }
+        if(!this._sortKey){
+            throw new Error("sortKey is required");
+        }
+
+        const current: QueryCommandInput = this.input;
+        current.KeyConditionExpression += ` AND #${this._sortKey} <= :value`;
+        Object.assign(current.ExpressionAttributeValues, {
+            [`:value`]: value
+        });
+        return this;
+    }
+
+    public gt(value: string, sk?: string) {
+        if(sk) {
+            this.sortKey(sk);
+        }
+        if(!this._sortKey){
+            throw new Error("sortKey is required");
+        }
+
+        const current: QueryCommandInput = this.input;
+        current.KeyConditionExpression += ` AND #${this._sortKey} > :value`;
+        Object.assign(current.ExpressionAttributeValues, {
+            [`:value`]: value
+        });
+        return this;
+    }
+
+    public gte(value: string, sk?: string) {
+        if(sk) {
+            this.sortKey(sk);
+        }
+        if(!this._sortKey){
+            throw new Error("sortKey is required");
+        }
+
+        const current: QueryCommandInput = this.input;
+        current.KeyConditionExpression += ` AND #${this._sortKey} >= :value`;
+        Object.assign(current.ExpressionAttributeValues, {
+            [`:value`]: value
+        });
+        return this;
+    }
+
+    public createProjectionExpression = (_partitionKeys: Record<string, string>[]) => {
+        const current: QueryCommandInput = this.input;
+        current.ProjectionExpression = _partitionKeys.map(key => `#${Object.keys(key)[0]}`).join(",");
+        return this;
     }
 }
-
-main();
