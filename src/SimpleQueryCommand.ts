@@ -1,8 +1,9 @@
-import {DynamoDBDocumentClient, QueryCommand, QueryCommandInput } from "@aws-sdk/lib-dynamodb";
+import {DynamoDBDocumentClient, paginateQuery, QueryCommand, QueryCommandInput} from "@aws-sdk/lib-dynamodb";
 import {DynamoDBClient} from "@aws-sdk/client-dynamodb";
 
 interface SimpleQueryCommandInput {
     TableName: string;
+    IndexName?: string;
     partitionKey: Record<string, string>;
     sortKey?: Record<string, string>;
 }
@@ -50,6 +51,7 @@ const createQueryCommandInput = function (input: SimpleQueryCommandInput): Query
 
     return {
         TableName: input.TableName,
+        IndexName: input.IndexName,
         KeyConditionExpression: createKeyConditionExpression(input),
         ExpressionAttributeNames: createExpressionAttributeNames(input),
         ExpressionAttributeValues: createExpressionAttributeValues(input)
@@ -189,9 +191,16 @@ export class SimpleQueryCommand extends QueryCommand{
         return this;
     }
 
-    public createProjectionExpression = (_partitionKeys: Record<string, string>[]) => {
+    public createProjectionExpression = (projectionExpression: {field: string; prop: string}[]) => {
         const current: QueryCommandInput = this.input;
-        current.ProjectionExpression = _partitionKeys.map(key => `#${Object.keys(key)[0]}`).join(",");
+        projectionExpression.forEach(expression => {
+            Object.assign(current.ExpressionAttributeNames, {
+                [`#${expression.field}`]: `${expression.field}`
+            });
+        });
+
+        const expressions = projectionExpression.map(expression => `#${expression.field}.${expression.prop}`);
+        current.ProjectionExpression = `#${this._partitionKey}, ${expressions.join(', ')}`;
         return this;
     }
 }
